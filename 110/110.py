@@ -38,15 +38,15 @@ def genPrimeFactors(n):
 
 primes = genPrimes(n)
 
-def evalExp(primeExp):
-  retVal = 1
-  for i in xrange(len(primeExp)):
-    retVal = retVal * (primes[i] ** primeExp[i])
-  return retVal
+# def evalExp(primeExp):
+#   retVal = 1
+#   for i in xrange(len(primeExp)):
+#     retVal = retVal * (primes[i] ** primeExp[i])
+#   return retVal
 
-def getDivCount(primeExp):
-  primeExpSq = map(lambda x: (2 * x) + 1, primeExp)
-  return (reduce(lambda x, y: x * y, primeExpSq) + 1) / 2
+# def getDivCount(primeExp):
+#   primeExpSq = map(lambda x: (2 * x) + 1, primeExp)
+#   return (reduce(lambda x, y: x * y, primeExpSq) + 1) / 2
 
 # from the dam back.
 lowest = 40564819207303340847894502572032

@@ -49,7 +49,7 @@ def hashFactorList(multList):
 
 factorMultMap = {}
 def genFactorMultList(multList):
-  global factorMultMapc
+  global factorMultMap
 
   retVal = []
 
