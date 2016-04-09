@@ -4,40 +4,16 @@ f = open('p105_sets.txt', 'r')
 
 sets = []
 
-line = f.readline()
-while len(line) > 0:
-  nums = map(lambda x: int(x), line.split(','))
-  nums.sort()
-  sets.append(nums)
-  line = f.readline()
 
 
-def checkOne(nums):
-  leftSize = 2
-
-  while leftSize + leftSize - 1 <= len(nums):
-    if reduce(lambda x,y: x+y, nums[(1 - leftSize):]) > reduce(lambda x,y: x+y, nums[0:leftSize]):
-      return False
-    leftSize = leftSize + 1
-  
-  return True
+import copy
 
 def getLens(numLen):
-  lenMap = {}
   lens = []
-  for lenOne in xrange(1, numLen - 1):
-    for lenTwo in xrange(1, numLen - lenOne + 1):
-      hVal = 0
-      if lenOne > lenTwo:
-        hVal = lenOne + (100 * lenTwo)
-      else:
-        hVal = lenTwo + (100 * lenOne)
-      if hVal not in lenMap:
-        lens.append([lenOne, lenTwo])
-        lenMap[hVal] = True
+  for subLen in xrange(2, (numLen / 2) + 1):
+    lens.append([subLen, subLen])
 
   return lens
-
 
 def hashIt(subSet):
   hVal = 0
@@ -53,10 +29,7 @@ def genAllSubSetsNoDupes(nums, subLen):
   mappy = {}
   retVal = []
 
-  # print 'ayoo'
-  # print allSubs
   for subSet in allSubs:
-    # print subSet
     subSet[0].sort()
     
     hVal = hashIt(subSet[0])
@@ -86,37 +59,85 @@ def genAllSubSets(soFar, nums, subLen):
 
   return retVal
 
-def checkTwo(nums):
+def genIndeciesToCheck(nums):
   global lenMap
 
   # print nums
   lens = getLens(len(nums))
-  print lens
+
+  retVal = []
 
   for lenSet in lens:
     setLists = genAllSubSetsNoDupes(nums, lenSet[0])
     for setList in setLists:
       secondList = genAllSubSetsNoDupes(setList[1], lenSet[1])
       for sec in secondList:
-        if reduce(lambda x,y: x + y, setList[0]) == reduce(lambda x,y: x + y, sec[0]):
-          return False
-      
+        # print setList[0], sec[0]
+
+        # match up lowest index from each set, see if the direction every switches
+        oneBigger = 0
+        twoBigger = 0
+        for i in xrange(len(setList[0])):
+          if (setList[0][i] > sec[0][i]):
+            oneBigger = oneBigger + 1
+          else:
+            twoBigger = twoBigger + 1
+
+        if oneBigger * twoBigger > 0:
+          retVal.append((setList[0], sec[0]))      
+
+  return retVal
+
+# print genIndeciesToCheck(range(7))
+
+indxCheck = {}
+for i in xrange(7, 13):
+  indxCheck[i] = genIndeciesToCheck(range(i))
+  print i, len(indxCheck[i])
+
+def checkTwo(nums):
+  global indxCheck
+
+  for i in xrange(len(indxCheck[len(nums)])):
+    sum1 = 0
+    for j in xrange(len(indxCheck[len(nums)][i][0])):
+      sum1 = sum1 + nums[indxCheck[len(nums)][i][0][j]]
+    sum2 = 0
+    for j in xrange(len(indxCheck[len(nums)][i][1])):
+      sum2 = sum2 + nums[indxCheck[len(nums)][i][1][j]]
+    if sum1 == sum2:
+      return False
 
   return True
 
-# print genAllSubSetsNoDupes([1, 2, 3, 4], 3)
-# print genAllSubSetsNoDupes([1, 2, 3, 4], 2)
-# print genAllSubSetsNoDupes([1, 2, 3, 4], 1)
 
-checkTwo(sets[0])
+line = f.readline()
+while len(line) > 0:
+  nums = map(lambda x: int(x), line.split(','))
+  nums.sort()
+  sets.append(nums)
+  line = f.readline()
 
-# total = 0
-# for i in xrange(len(sets)):
-#   if checkOne(sets[i]):
-#     if checkTwo(sets[i]):
-#       total = total + reduce(lambda x,y: x + y, sets[i]) 
-#       print sets[i], reduce(lambda x,y: x + y, sets[i]), total
 
-#   print sets[i], total
+def checkOne(nums):
+  leftSize = 2
 
-# print total
+  while leftSize + leftSize - 1 <= len(nums):
+    if reduce(lambda x,y: x+y, nums[(1 - leftSize):]) >= reduce(lambda x,y: x+y, nums[0:leftSize]):
+      return False
+    leftSize = leftSize + 1
+  
+  return True
+
+total = 0
+for i in xrange(len(sets)):
+  if checkOne(sets[i]):
+    if checkTwo(sets[i]):
+      total = total + reduce(lambda x,y: x + y, sets[i]) 
+      print sets[i], reduce(lambda x,y: x + y, sets[i]), total
+
+  # print sets[i], total
+
+
+
+print total
