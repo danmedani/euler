@@ -137,7 +137,7 @@ while True:
 		if sizePct >= .99:
 			print 'got >= 99%!'
 			print 'pm group size, numPeople, pct', group[personsGroup[pm]].size, len(personsGroup), sizePct
-			print 'n, numGroups, numPeople, calcs, successfulCalls', n, len(group), len(personsGroup), deltWith, successfulCalls
+			print 'n, numGroups, numPeople, successfulCalls', n, len(group), len(personsGroup), successfulCalls
 			break
 
 	n = n + 1
