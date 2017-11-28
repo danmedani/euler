@@ -17,12 +17,6 @@ def s_k(k):
 	return result
 
 def getCall(n):
-	if n == 5:
-		return 701497, 200007
-	if n == 6:
-		return 500439, 602383
-	if n == 7:
-		return 100053, 500439
 	return s_k(2 * n - 1), s_k(2 * n)
 
 # Upper bound on # of groups
