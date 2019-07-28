@@ -46,13 +46,11 @@ def chunkify(power_of_twos):
 print(power_of_twos)
 print(chunkify(power_of_twos))
 
-@lru_cache(maxsize=len(power_of_twos))
 def get_count(chunx, i):
 	if i == 0:
 		return chunx[i]
 	return (chunx[i] * get_count(chunx, i-1)) + get_tail(chunx, i-1)
 
-@lru_cache(maxsize=len(power_of_twos))
 def get_tail(chunx, i):
 	if i == 0:
 		return chunx[i] - 1
