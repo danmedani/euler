@@ -32,8 +32,8 @@ def power_mod_fast(val, exp, mod):
 	return answer
 
 aa = [
-	power_mod(x, x, 1000)
-	for x in range(1, 6000)
+	power_mod_fast(x, x, 1000)
+	for x in range(1, 250251)
 ]
 
 a_map = defaultdict(int)
@@ -41,5 +41,12 @@ a_map = defaultdict(int)
 for val in aa:
 	a_map[val] = a_map[val] + 1
 
-for key in a_map.keys():
-	print(key, a_map[key])
+the_list = sorted(list(a_map.keys()))
+
+print(
+	[
+		(val, a_map[val])
+		for val in the_list
+	]
+)
+
