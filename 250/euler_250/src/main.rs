@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use prime_tools;
+use math::round;
 
 const MOD_VAL: u64 = 10_000_000_000_000_000;
 
@@ -113,15 +114,15 @@ fn choose(n: u64, k: u64) -> u64 {
 }
 
 
-fn choose_mod(n: u32, k: u32, modulus: u32, prime_factor_map: HashMap<u32, HashMap<u32, u32>>) -> u32 {
+fn choose_mod(n: u32, k: u32, modulus: u64, prime_factor_map: HashMap<u32, HashMap<u32, u32>>) -> u64 {
 	// n! / k! * (n-k)!
 	let k = if k < (n-k) { n-k } else { k };
-
+	println!("n = {}, k = {}", n, k);
 	// = n * (n-1) * (n-2) * ... * k + 1
 	//   /
 	//   1 * 2 * 3 * ... * n-k 
-	let mut numerators: Vec<u32> = ((k+1)..n).collect();
-	// let mut numerator_map = HashMap::new();
+	let mut numerators: Vec<u32> = ((k+1)..=n).collect();
+	
 	for denominator in 1..=(n-k) {
 		let denominator_prime_factors = prime_factor_map.get(&denominator).unwrap();
 
@@ -144,7 +145,7 @@ fn choose_mod(n: u32, k: u32, modulus: u32, prime_factor_map: HashMap<u32, HashM
 	// at this time, the denominator has been whacked
 	let mut final_answer = 1;
 	for num in numerators.iter() {
-		final_answer = (final_answer * num) % modulus;
+		final_answer = (final_answer * *num as u64) % modulus;
 	}
 
 	final_answer
@@ -169,27 +170,31 @@ fn get_digit_counts() -> HashMap<u32, u32> {
 	digit_counts
 }
 
-// fix choose
-// iterate through 250, 500, ..., 300M?
-// create hashmap
-// get keys, sort, put in vec
-// hash results from variations based on drop_value
-fn main() {
-    println!("Hello, world!");
-    println!("52 choose 5 = {}", choose(52, 5));
-
-    let digit_counts = get_digit_counts();
-
-    let mut factor_map = HashMap::new();
-    let primes = prime_tools::get_primes_less_than_x(80);
-    for i in 1..=6257 {
+fn get_factor_map(max_val: u32) -> HashMap<u32, HashMap<u32, u32>> {
+	let mut factor_map = HashMap::new();
+    let primes = prime_tools::get_primes_less_than_x(
+    	round::ceil((max_val as f64).sqrt(), 1) as u32
+	);
+    for i in 1..=max_val {
     	factor_map.insert(
     		i, 
     		prime_tools::get_prime_factors_with_counts(i, &primes)
     	);
     }
-    println!("factor_map = {:#?}", factor_map.get(&6000).unwrap());
-    println!("52 choose 5 = {}", choose_mod(52, 5, 1000, factor_map));
+    factor_map
+}
+
+// fix choose
+// iterate through 250, 500, ..., 300M?
+// get keys, sort, put in vec
+// hash results from variations based on drop_value
+fn main() {
+    println!("Hello, world!");
+    // Ignore 0... it comes up 25,025 times
+	// The number that appears that most is `125` with 6,257 appearences
+    let digit_counts = get_digit_counts();
+    let factor_map = get_factor_map(7000);
+    println!("52 choose 5 = {}", choose_mod(152, 19, MOD_VAL, factor_map));
 	// largest count of digits (aside from 0) is 6257
 }
 
