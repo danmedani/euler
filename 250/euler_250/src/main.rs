@@ -47,15 +47,20 @@ fn power_mod_fast(val: u32, exponent: u32, modulus: u32) -> u32 {
 	answer
 }
 
-
+#[cache(LruCache : LruCache::new(10000))]
+#[cache_cfg(ignore_args = digit_counts, three_digit_list, modulus, prime_factor_map)]
+#[cache_cfg(thread_local)]
 fn variations(
-	counts: &HashMap<u32, u32>, 
+	digit_counts: &HashMap<u32, u32>, 
 	three_digit_list: &Vec<u32>,
 	drop_value: u32, 
-	modulus: u32,
+	modulus: u64,
 	highest_allowed_val: u32,
 	prime_factor_map: &HashMap<u32, HashMap<u32, u32>>
 ) -> u64 {
+	if drop_value == 0 {
+		return 25_026;
+	}
 	let mut variation_count: u64 = 0;
 
 	let mut three_digit_index = 0;
@@ -65,10 +70,10 @@ fn variations(
 		let mut count_digits = 1;
 		let mut digit_product = count_digits * last_three;
 		
-		while digit_product <= drop_value && count_digits <= counts[&last_three] {
+		while digit_product <= drop_value && count_digits <= digit_counts[&last_three] {
 			let dropped_value = drop_value - digit_product;
 			let multiplier = choose_mod(
-				counts[&last_three], 
+				digit_counts[&last_three], 
 				count_digits,
 				MOD_VAL,
 				prime_factor_map
@@ -77,7 +82,7 @@ fn variations(
 			variation_count = (
 				variation_count + (
 					multiplier * variations(
-						counts,
+						digit_counts,
 						three_digit_list,
 						dropped_value,
 						modulus,
@@ -85,15 +90,13 @@ fn variations(
 						prime_factor_map
 					)
 				)
-			) % modulus as u64;
+			) % modulus;
 
 			count_digits += 1;
 			digit_product = count_digits * last_three;
 		}
-
 		three_digit_index += 1;
 	}
-
 	variation_count
 }
 
@@ -101,14 +104,10 @@ fn variations(
 #[cache_cfg(ignore_args = prime_factor_map)]
 #[cache_cfg(thread_local)]
 fn choose_mod(n: u32, k: u32, modulus: u64, prime_factor_map: &HashMap<u32, HashMap<u32, u32>>) -> u64 {
-	// n! / k! * (n-k)!
 	let k = if k < (n-k) { n-k } else { k };
-	println!("n = {}, k = {}", n, k);
-	// = n * (n-1) * (n-2) * ... * k + 1
-	//   /
-	//   1 * 2 * 3 * ... * n-k 
 	let mut numerators: Vec<u32> = ((k+1)..=n).collect();
-	
+
+	let mut leftover_denom: u64 = 1;
 	for denominator in 1..=(n-k) {
 		let denominator_prime_factors = prime_factor_map.get(&denominator).unwrap();
 
@@ -127,7 +126,8 @@ fn choose_mod(n: u32, k: u32, modulus: u64, prime_factor_map: &HashMap<u32, Hash
 			}
 
 			if factor_count != 0 {
-				panic!("something went wrong.. factor count is not 0!");
+				//shrug
+				leftover_denom = leftover_denom * (factor_count as u64 * *factor as u64);
 			}
 		}
 	}
@@ -138,7 +138,7 @@ fn choose_mod(n: u32, k: u32, modulus: u64, prime_factor_map: &HashMap<u32, Hash
 		final_answer = (final_answer * *num as u64) % modulus;
 	}
 
-	final_answer
+	final_answer / leftover_denom
 }
 
 // grab digit counts for [1^1%1000, 2^2%1000, 3^3%1000, ..., 250250^250250%1000]
@@ -178,20 +178,45 @@ fn get_factor_map(max_val: u32) -> HashMap<u32, HashMap<u32, u32>> {
 // hash results from variations based on drop_value
 fn main() {
     println!("Hello, world!");
-    // Ignore 0... it comes up 25,025 times
+    // Ignore 0... it comes up 25,025 times (+ 1 for nothing!)
 	// The number that appears that most is `125` with 6,257 appearences
     let digit_counts = get_digit_counts();
     let factor_map = get_factor_map(7000);
-    let mut digit_vec = Vec::new();
+    let mut three_digit_list = Vec::new();
     for (key, val) in digit_counts.iter() {
-    	digit_vec.push(key);
+    	three_digit_list.push(*key);
     }
-    digit_vec.sort();
-    for d in digit_vec.iter() {
-    	println!("v = {}", d);
-    }
-    println!("52 choose 5 = {}", choose_mod(152, 19, MOD_VAL, &factor_map));
-	// largest count of digits (aside from 0) is 6257
+    three_digit_list.sort();
+
+    let vars = variations(
+    	&digit_counts,
+    	&three_digit_list,
+    	250,
+    	MOD_VAL,
+    	251,
+    	&factor_map
+    );
+    println!("var = {}", vars);
+    let vars = variations(
+    	&digit_counts,
+    	&three_digit_list,
+    	500,
+    	MOD_VAL,
+    	501,
+    	&factor_map
+    );
+    println!("var = {}", vars);
+    let vars = variations(
+    	&digit_counts,
+    	&three_digit_list,
+    	750,
+    	MOD_VAL,
+    	751,
+    	&factor_map
+    );
+    println!("var = {}", vars);
+    // println!("251 choose 243 = {}", choose_mod(251, 8, MOD_VAL, &factor_map))
+	
 }
 
 
