@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+use prime_tools;
 
 fn power_mod(val: u32, exponent: u32, modulus: u32) -> u32 {
 	let mut answer = 1;
@@ -43,14 +43,106 @@ fn power_mod_fast(val: u32, exponent: u32, modulus: u32) -> u32 {
 }
 
 
+fn variations(
+	counts: &HashMap<u32, u32>, 
+	three_digit_list: &Vec<u32>,
+	drop_value: u32, 
+	modulus: u32,
+	highest_allowed_val: u32
+) -> u64 {
+	let mut variation_count: u64 = 0;
+
+	let mut three_digit_index = 0;
+	while three_digit_list[three_digit_index] < highest_allowed_val {
+		let last_three = three_digit_list[three_digit_index];
+		
+		let mut count_digits = 1;
+		let mut digit_product = count_digits * last_three;
+		
+		while digit_product <= drop_value && count_digits <= counts[&last_three] {
+			let dropped_value = drop_value - digit_product;
+			let multiplier = choose(
+				counts[&last_three] as u64, 
+				count_digits as u64
+			);
+
+			variation_count = (
+				variation_count + (
+					multiplier * variations(
+						counts,
+						three_digit_list,
+						dropped_value,
+						modulus,
+						last_three
+					)
+				)
+			) % modulus as u64;
+
+			count_digits += 1;
+			digit_product = count_digits * last_three;
+		}
+
+		three_digit_index += 1;
+	}
+
+	variation_count
+}
+
+
+fn choose(n: u64, k: u64) -> u64 {
+	let s = if k < (n-k) { n-k } else { k };
+	let mut numerator = 1;
+	let mut num_val = n;
+
+	while num_val > s {
+		numerator = numerator * num_val;
+		num_val -= 1;
+	}
+
+	let mut denominator = 1;
+	let mut denom_val = 1;
+	let top_val = n - s;
+	while denom_val <= top_val {
+		denominator = denominator * denom_val;
+		denom_val += 1;
+	}
+
+	numerator / denominator
+}
+
+// grab digit counts for [1^1%1000, 2^2%1000, 3^3%1000, ..., 250250^250250%1000]
+// Ignore 0... it comes up 25,025 times
+// The number that appears that most is `125` with 6,257 appearences
+fn get_digit_counts() -> HashMap<u32, u32> {
+	let vec: Vec<u32> = (1..=250250).collect();
+	let vec: Vec<u32> = vec.into_iter().map(|x| power_mod_fast(x, x, 1000)).collect();
+
+	let mut digit_counts = HashMap::new();
+	for val in vec.iter() {
+		if *val != 0 {
+			// 0 is special... 
+			let digit_count = digit_counts.entry(*val).or_insert(0);
+			*digit_count += 1;
+		}
+	}
+
+	digit_counts
+}
+
+// fix choose
+// iterate through 250, 500, ..., 300M?
+// create hashmap
+// get keys, sort, put in vec
+// hash results from variations based on drop_value
 fn main() {
     println!("Hello, world!");
+    println!("52 choose 5 = {}", choose(52, 5));
 
-    for i in 1..10000 {
-    	let p_m = power_mod(i, i, 1000);
-    	let p_m_f = power_mod_fast(i, i, 1000);
-    	if p_m != p_m_f {
-    		println!("NOT EQUAL! {} == {}", p_m, p_m_f);
-    	}
-    }
+    let digit_counts = get_digit_counts();
+
+	// largest count of digits (aside from 0) is 6257
 }
+
+
+
+
