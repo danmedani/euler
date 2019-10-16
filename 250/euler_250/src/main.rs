@@ -1,18 +1,9 @@
 use std::collections::HashMap;
 use prime_tools;
 use math::round;
-use cache_macro::cache;
-use lru_cache::LruCache;
+use lru::LruCache;
 
 const MOD_VAL: u64 = 10_000_000_000_000_000;
-
-fn power_mod(val: u32, exponent: u32, modulus: u32) -> u32 {
-	let mut answer = 1;
-	for _ in 0..exponent {
-		answer = (answer * val) % modulus;
-	}
-	answer
-}
 
 fn power_mod_fast(val: u32, exponent: u32, modulus: u32) -> u32 {
 	let mut values_seen = HashMap::new();
@@ -47,24 +38,31 @@ fn power_mod_fast(val: u32, exponent: u32, modulus: u32) -> u32 {
 	answer
 }
 
-#[cache(LruCache : LruCache::new(10000))]
-#[cache_cfg(ignore_args = digit_counts, three_digit_list, modulus, prime_factor_map)]
-#[cache_cfg(thread_local)]
 fn variations(
 	digit_counts: &HashMap<u32, u32>, 
 	three_digit_list: &Vec<u32>,
 	drop_value: u32, 
 	modulus: u64,
 	highest_allowed_val: u32,
-	prime_factor_map: &HashMap<u32, HashMap<u32, u32>>
+	prime_factor_map: &HashMap<u32, HashMap<u32, u32>>,
+	mod_cache: &mut LruCache<u32, u64>,
+	variations_cache: &mut LruCache<u32, u64>
 ) -> u64 {
 	if drop_value == 0 {
 		return 25_026;
 	}
+
+	// caching
+	let variations_cache_hash = hash_for_variations_cache(drop_value, highest_allowed_val);
+	match variations_cache.get(&variations_cache_hash) {
+		None => (),
+		Some(val) => return *val
+	}
+
 	let mut variation_count: u64 = 0;
 
 	let mut three_digit_index = 0;
-	while three_digit_list[three_digit_index] < highest_allowed_val {
+	while three_digit_index < three_digit_list.len() && three_digit_list[three_digit_index] < highest_allowed_val {
 		let last_three = three_digit_list[three_digit_index];
 		
 		let mut count_digits = 1;
@@ -76,7 +74,8 @@ fn variations(
 				digit_counts[&last_three], 
 				count_digits,
 				MOD_VAL,
-				prime_factor_map
+				prime_factor_map,
+				mod_cache
 			);
 
 			variation_count = (
@@ -87,7 +86,9 @@ fn variations(
 						dropped_value,
 						modulus,
 						last_three,
-						prime_factor_map
+						prime_factor_map,
+						mod_cache,
+						variations_cache
 					)
 				)
 			) % modulus;
@@ -97,25 +98,44 @@ fn variations(
 		}
 		three_digit_index += 1;
 	}
+
+	variations_cache.put(variations_cache_hash, variation_count);
 	variation_count
 }
 
-#[cache(LruCache : LruCache::new(10000))]
-#[cache_cfg(ignore_args = prime_factor_map)]
-#[cache_cfg(thread_local)]
-fn choose_mod(n: u32, k: u32, modulus: u64, prime_factor_map: &HashMap<u32, HashMap<u32, u32>>) -> u64 {
-	let k = if k < (n-k) { n-k } else { k };
-	let mut numerators: Vec<u32> = ((k+1)..=n).collect();
+fn hash_for_variations_cache(drop_value: u32, highest_allowed_val: u32) -> u32 {
+	return (drop_value * 10_000) + highest_allowed_val;
+}
 
-	let mut leftover_denom: u64 = 1;
-	for denominator in 1..=(n-k) {
+fn hash_for_mod_cache(n: u32, k: u32) -> u32 {
+	return (n * 10_000) + k;
+}
+
+fn choose_mod(
+	n: u32, 
+	k: u32, 
+	modulus: u64, 
+	prime_factor_map: &HashMap<u32, HashMap<u32, u32>>,
+	mod_cache: &mut LruCache<u32, u64>
+) -> u64 {
+	let k = if k < (n-k) { n-k } else { k };
+
+	// caching
+	let mod_cache_hash = hash_for_mod_cache(n, k);
+	match mod_cache.get(&mod_cache_hash) {
+		None => (),
+		Some(val) => return *val
+	}
+	
+	let mut numerators: Vec<u32> = ((k+1)..=n).collect();
+	for denominator in 2..=(n-k) {
 		let denominator_prime_factors = prime_factor_map.get(&denominator).unwrap();
 
 		for (factor, count) in denominator_prime_factors.iter() {
 			let mut factor_count = count.clone();
 
 			for index in 0..numerators.len() {
-				if numerators[index] % factor == 0 {
+				while factor_count > 0 && numerators[index] % factor == 0 {
 					factor_count = factor_count - 1;
 					numerators[index] = numerators[index] / factor; 
 				}
@@ -126,8 +146,7 @@ fn choose_mod(n: u32, k: u32, modulus: u64, prime_factor_map: &HashMap<u32, Hash
 			}
 
 			if factor_count != 0 {
-				//shrug
-				leftover_denom = leftover_denom * (factor_count as u64 * *factor as u64);
+				panic!("no.. {}, {}, {}, {}", factor, factor_count, n, k);
 			}
 		}
 	}
@@ -138,7 +157,8 @@ fn choose_mod(n: u32, k: u32, modulus: u64, prime_factor_map: &HashMap<u32, Hash
 		final_answer = (final_answer * *num as u64) % modulus;
 	}
 
-	final_answer / leftover_denom
+	mod_cache.put(mod_cache_hash, final_answer);
+	final_answer
 }
 
 // grab digit counts for [1^1%1000, 2^2%1000, 3^3%1000, ..., 250250^250250%1000]
@@ -174,8 +194,7 @@ fn get_factor_map(max_val: u32) -> HashMap<u32, HashMap<u32, u32>> {
     factor_map
 }
 
-// iterate through 250, 500, ..., 300M?
-// hash results from variations based on drop_value
+// 112_416_965 = sum total.
 fn main() {
     println!("Hello, world!");
     // Ignore 0... it comes up 25,025 times (+ 1 for nothing!)
@@ -183,40 +202,93 @@ fn main() {
     let digit_counts = get_digit_counts();
     let factor_map = get_factor_map(7000);
     let mut three_digit_list = Vec::new();
-    for (key, val) in digit_counts.iter() {
+
+    for (key, _) in digit_counts.iter() {
     	three_digit_list.push(*key);
     }
+    
     three_digit_list.sort();
 
-    let vars = variations(
-    	&digit_counts,
-    	&three_digit_list,
-    	250,
-    	MOD_VAL,
-    	251,
-    	&factor_map
-    );
-    println!("var = {}", vars);
-    let vars = variations(
-    	&digit_counts,
-    	&three_digit_list,
-    	500,
-    	MOD_VAL,
-    	501,
-    	&factor_map
-    );
-    println!("var = {}", vars);
-    let vars = variations(
-    	&digit_counts,
-    	&three_digit_list,
-    	750,
-    	MOD_VAL,
-    	751,
-    	&factor_map
-    );
-    println!("var = {}", vars);
-    // println!("251 choose 243 = {}", choose_mod(251, 8, MOD_VAL, &factor_map))
-	
+    let mut mod_cache = LruCache::new(10_000);
+    let mut variations_cache = LruCache::new(1_000_000);
+
+    let mut total_val = 0;
+    let mut drop_val = 250;
+    while drop_val < 112_416_965 {
+    	let vars = variations(
+	    	&digit_counts,
+	    	&three_digit_list,
+	    	drop_val,
+	    	MOD_VAL,
+	    	drop_val+1,
+	    	&factor_map,
+	    	&mut mod_cache,
+	    	&mut variations_cache
+	    );
+	    println!("variations from {} = {}", drop_val, vars);
+	    drop_val += 250;
+	    total_val = (total_val + vars) % MOD_VAL;
+    }
+    
+    println!("total variations = {}", total_val)
+    
+
+
+    // let vars = variations(
+    // 	&digit_counts,
+    // 	&three_digit_list,
+    // 	500,
+    // 	MOD_VAL,
+    // 	501,
+    // 	&factor_map,
+    // 	&mut mod_cache,
+    // 	&mut variations_cache
+    // );
+    // println!("var = {}", vars);
+    // let vars = variations(
+    // 	&digit_counts,
+    // 	&three_digit_list,
+    // 	750,
+    // 	MOD_VAL,
+    // 	751,
+    // 	&factor_map,
+    // 	&mut mod_cache,
+    // 	&mut variations_cache
+    // );
+    // println!("var = {}", vars);
+    // let vars = variations(
+    // 	&digit_counts,
+    // 	&three_digit_list,
+    // 	1000,
+    // 	MOD_VAL,
+    // 	1001,
+    // 	&factor_map,
+    // 	&mut mod_cache,
+    // 	&mut variations_cache
+    // );
+    // println!("var = {}", vars);
+    // let vars = variations(
+    // 	&digit_counts,
+    // 	&three_digit_list,
+    // 	1250,
+    // 	MOD_VAL,
+    // 	1251,
+    // 	&factor_map,
+    // 	&mut mod_cache,
+    // 	&mut variations_cache
+    // );
+    // println!("var = {}", vars);
+    // let vars = variations(
+    // 	&digit_counts,
+    // 	&three_digit_list,
+    // 	1500,
+    // 	MOD_VAL,
+    // 	1501,
+    // 	&factor_map,
+    // 	&mut mod_cache,
+    // 	&mut variations_cache
+    // );
+    // println!("var = {}", vars);	
 }
 
 
