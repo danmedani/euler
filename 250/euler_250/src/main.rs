@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use prime_tools;
 
+const MOD_VAL: u64 = 10_000_000_000_000_000;
+
 fn power_mod(val: u32, exponent: u32, modulus: u32) -> u32 {
 	let mut answer = 1;
 	for _ in 0..exponent {
@@ -110,6 +112,38 @@ fn choose(n: u64, k: u64) -> u64 {
 	numerator / denominator
 }
 
+
+fn choose_mod(n: u32, k: u32, modulus: u32, prime_factor_map: HashMap<u32, HashMap<u32, u32>>) -> u32 {
+	// n! / k! * (n-k)!
+	let k = if k < (n-k) { n-k } else { k };
+
+	// = n * (n-1) * (n-2) * ... * k + 1
+	//   /
+	//   1 * 2 * 3 * ... * n-k 
+	let mut numerators: Vec<u32> = ((k+1)..n).collect();
+	// let mut numerator_map = HashMap::new();
+	for denominator in 1..=(n-k) {
+		println!("denom = {}", denominator);
+		let denominator_prime_factors = prime_factor_map.get(&denominator).unwrap();
+
+		for (factor, count) in denominator_prime_factors.iter() {
+			let mut factor_count = count;
+
+			for val in numerators.iter() {
+				if val % factor == 0 {
+					factor_count = factor_count - 1;
+					*val = val / factor; 
+				}
+
+				if *count == 0 {
+					break;
+				}
+			}
+		}
+	}
+	12
+}
+
 // grab digit counts for [1^1%1000, 2^2%1000, 3^3%1000, ..., 250250^250250%1000]
 // Ignore 0... it comes up 25,025 times
 // The number that appears that most is `125` with 6,257 appearences
@@ -140,6 +174,16 @@ fn main() {
 
     let digit_counts = get_digit_counts();
 
+    let mut factor_map = HashMap::new();
+    let primes = prime_tools::get_primes_less_than_x(80);
+    for i in 1..=6257 {
+    	factor_map.insert(
+    		i, 
+    		prime_tools::get_prime_factors_with_counts(i, &primes)
+    	);
+    }
+    println!("factor_map = {:#?}", factor_map.get(&6000).unwrap());
+    let choose_m = choose_mod(52, 15, 1000, factor_map);
 	// largest count of digits (aside from 0) is 6257
 }
 
