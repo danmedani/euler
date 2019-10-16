@@ -123,25 +123,31 @@ fn choose_mod(n: u32, k: u32, modulus: u32, prime_factor_map: HashMap<u32, HashM
 	let mut numerators: Vec<u32> = ((k+1)..n).collect();
 	// let mut numerator_map = HashMap::new();
 	for denominator in 1..=(n-k) {
-		println!("denom = {}", denominator);
 		let denominator_prime_factors = prime_factor_map.get(&denominator).unwrap();
 
 		for (factor, count) in denominator_prime_factors.iter() {
-			let mut factor_count = count;
+			let mut factor_count = count.clone();
 
-			for val in numerators.iter() {
-				if val % factor == 0 {
+			for index in 0..numerators.len() {
+				if numerators[index] % factor == 0 {
 					factor_count = factor_count - 1;
-					*val = val / factor; 
+					numerators[index] = numerators[index] / factor; 
 				}
 
-				if *count == 0 {
+				if factor_count == 0 {
 					break;
 				}
 			}
 		}
 	}
-	12
+
+	// at this time, the denominator has been whacked
+	let mut final_answer = 1;
+	for num in numerators.iter() {
+		final_answer = (final_answer * num) % modulus;
+	}
+
+	final_answer
 }
 
 // grab digit counts for [1^1%1000, 2^2%1000, 3^3%1000, ..., 250250^250250%1000]
@@ -183,7 +189,7 @@ fn main() {
     	);
     }
     println!("factor_map = {:#?}", factor_map.get(&6000).unwrap());
-    let choose_m = choose_mod(52, 15, 1000, factor_map);
+    println!("52 choose 5 = {}", choose_mod(52, 5, 1000, factor_map));
 	// largest count of digits (aside from 0) is 6257
 }
 
