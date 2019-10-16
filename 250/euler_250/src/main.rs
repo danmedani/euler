@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use prime_tools;
 use math::round;
+use cache_macro::cache;
+use lru_cache::LruCache;
 
 const MOD_VAL: u64 = 10_000_000_000_000_000;
 
@@ -51,7 +53,8 @@ fn variations(
 	three_digit_list: &Vec<u32>,
 	drop_value: u32, 
 	modulus: u32,
-	highest_allowed_val: u32
+	highest_allowed_val: u32,
+	prime_factor_map: &HashMap<u32, HashMap<u32, u32>>
 ) -> u64 {
 	let mut variation_count: u64 = 0;
 
@@ -64,9 +67,11 @@ fn variations(
 		
 		while digit_product <= drop_value && count_digits <= counts[&last_three] {
 			let dropped_value = drop_value - digit_product;
-			let multiplier = choose(
-				counts[&last_three] as u64, 
-				count_digits as u64
+			let multiplier = choose_mod(
+				counts[&last_three], 
+				count_digits,
+				MOD_VAL,
+				prime_factor_map
 			);
 
 			variation_count = (
@@ -76,7 +81,8 @@ fn variations(
 						three_digit_list,
 						dropped_value,
 						modulus,
-						last_three
+						last_three,
+						prime_factor_map
 					)
 				)
 			) % modulus as u64;
@@ -91,30 +97,10 @@ fn variations(
 	variation_count
 }
 
-
-fn choose(n: u64, k: u64) -> u64 {
-	let s = if k < (n-k) { n-k } else { k };
-	let mut numerator = 1;
-	let mut num_val = n;
-
-	while num_val > s {
-		numerator = numerator * num_val;
-		num_val -= 1;
-	}
-
-	let mut denominator = 1;
-	let mut denom_val = 1;
-	let top_val = n - s;
-	while denom_val <= top_val {
-		denominator = denominator * denom_val;
-		denom_val += 1;
-	}
-
-	numerator / denominator
-}
-
-
-fn choose_mod(n: u32, k: u32, modulus: u64, prime_factor_map: HashMap<u32, HashMap<u32, u32>>) -> u64 {
+#[cache(LruCache : LruCache::new(10000))]
+#[cache_cfg(ignore_args = prime_factor_map)]
+#[cache_cfg(thread_local)]
+fn choose_mod(n: u32, k: u32, modulus: u64, prime_factor_map: &HashMap<u32, HashMap<u32, u32>>) -> u64 {
 	// n! / k! * (n-k)!
 	let k = if k < (n-k) { n-k } else { k };
 	println!("n = {}, k = {}", n, k);
@@ -138,6 +124,10 @@ fn choose_mod(n: u32, k: u32, modulus: u64, prime_factor_map: HashMap<u32, HashM
 				if factor_count == 0 {
 					break;
 				}
+			}
+
+			if factor_count != 0 {
+				panic!("something went wrong.. factor count is not 0!");
 			}
 		}
 	}
@@ -184,9 +174,7 @@ fn get_factor_map(max_val: u32) -> HashMap<u32, HashMap<u32, u32>> {
     factor_map
 }
 
-// fix choose
 // iterate through 250, 500, ..., 300M?
-// get keys, sort, put in vec
 // hash results from variations based on drop_value
 fn main() {
     println!("Hello, world!");
@@ -194,7 +182,15 @@ fn main() {
 	// The number that appears that most is `125` with 6,257 appearences
     let digit_counts = get_digit_counts();
     let factor_map = get_factor_map(7000);
-    println!("52 choose 5 = {}", choose_mod(152, 19, MOD_VAL, factor_map));
+    let mut digit_vec = Vec::new();
+    for (key, val) in digit_counts.iter() {
+    	digit_vec.push(key);
+    }
+    digit_vec.sort();
+    for d in digit_vec.iter() {
+    	println!("v = {}", d);
+    }
+    println!("52 choose 5 = {}", choose_mod(152, 19, MOD_VAL, &factor_map));
 	// largest count of digits (aside from 0) is 6257
 }
 
