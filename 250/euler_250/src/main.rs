@@ -46,11 +46,10 @@ fn variations(
 	highest_allowed_val: u32,
 	prime_factor_map: &HashMap<u32, HashMap<u32, u32>>,
 	mod_cache: &mut LruCache<u32, u64>,
-	variations_cache: &mut LruCache<u32, u64>,
-	sum_lower_values_map: &HashMap<u32, u32>
+	variations_cache: &mut LruCache<u32, u64>
 ) -> u64 {
 	if drop_value == 0 {
-		return 25_026; //todo: this is wrong... we need 1 + 25_025 C 1..25_025
+		return 1 + 3_600_570_401_554_431; // 1 + 25_025 C {1..25_025} (see crunch_zero.py)
 	}
 
 	// caching
@@ -60,21 +59,18 @@ fn variations(
 		Some(val) => return *val
 	}
 
+	println!("drop_value {}, highest_allowed_val {}", drop_value, highest_allowed_val);
+
 	let mut variation_count: u64 = 0;
 
 	let mut three_digit_index = 0;
 	while three_digit_index < three_digit_list.len() && three_digit_list[three_digit_index] < highest_allowed_val {
 		let last_three = three_digit_list[three_digit_index];
-		
-		if drop_value > sum_lower_values_map[&last_three] {
-			three_digit_index += 1;
-			continue;
-		}
+
 		let mut count_digits = 1;
 		let mut digit_product = count_digits * last_three;
-		
-		while digit_product <= drop_value && count_digits <= digit_counts[&last_three] {
-			let dropped_value = drop_value - digit_product;
+		while count_digits <= digit_counts[&last_three] {
+			let dropped_value = (drop_value - digit_product) % 1000;
 			let multiplier = choose_mod(
 				digit_counts[&last_three], 
 				count_digits,
@@ -93,8 +89,7 @@ fn variations(
 						last_three,
 						prime_factor_map,
 						mod_cache,
-						variations_cache,
-						sum_lower_values_map
+						variations_cache
 					)
 				)
 			) % modulus;
@@ -133,6 +128,8 @@ fn choose_mod(
 		Some(val) => return *val
 	}
 	
+	println!("choose_mod {}C{}", n, k);
+
 	let mut numerators: Vec<u32> = ((k+1)..=n).collect();
 	for denominator in 2..=(n-k) {
 		let denominator_prime_factors = prime_factor_map.get(&denominator).unwrap();
@@ -143,7 +140,7 @@ fn choose_mod(
 			for index in 0..numerators.len() {
 				while factor_count > 0 && numerators[index] % factor == 0 {
 					factor_count = factor_count - 1;
-					numerators[index] = numerators[index] / factor; 
+					numerators[index] = numerators[index] / factor;
 				}
 
 				if factor_count == 0 {
@@ -206,7 +203,7 @@ fn main() {
     // Ignore 0... it comes up 25,025 times (+ 1 for nothing!)
 	// The number that appears that most is `125` with 6,257 appearences
     let digit_counts = get_digit_counts();
-    let factor_map = get_factor_map(7000);
+    let factor_map = get_factor_map(100000);
     let mut three_digit_list = Vec::new();
 
     for (key, _) in digit_counts.iter() {
@@ -214,21 +211,15 @@ fn main() {
     }
 
     three_digit_list.sort();
-	
-    let mut sum_lower_values = 0;
-    let mut sum_lower_values_map = HashMap::new();    
-    for three_digit_val in three_digit_list.iter() {
-    	sum_lower_values += (three_digit_val * digit_counts[three_digit_val]);
-    	sum_lower_values_map.insert(*three_digit_val, sum_lower_values);
-    }
 
-
-    let mut mod_cache = LruCache::new(10_000);
-    let mut variations_cache = LruCache::new(10_000_000);
+    let mut mod_cache = LruCache::new(1_000_000);
+    let mut variations_cache = LruCache::new(50_000_000);
 
     let mut total_val = 0;
     let mut drop_val = 250;
-    while drop_val < 112_416_965 {
+    // while drop_val < 112_416_966 { // 112_416_966 is > sum(three_digit_list)
+    while drop_val < 1001 {
+    	println!("crunching numbers for {}", drop_val);
     	let vars = variations(
 	    	&digit_counts,
 	    	&three_digit_list,
@@ -237,8 +228,7 @@ fn main() {
 	    	drop_val+1,
 	    	&factor_map,
 	    	&mut mod_cache,
-	    	&mut variations_cache,
-	    	&sum_lower_values_map
+	    	&mut variations_cache
 	    );
 	    println!("variations from {} = {}", drop_val, vars);
 	    drop_val += 250;
