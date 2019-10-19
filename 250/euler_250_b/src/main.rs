@@ -236,7 +236,7 @@ fn main() {
     
     let combinations = get_combinations(
     	0, 
-    	0,
+    	1,
 
     	&three_digit_list, 
     	&digit_counts, 
