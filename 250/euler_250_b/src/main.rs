@@ -1,6 +1,12 @@
 use std::collections::HashMap;
 use prime_tools;
 use math::round;
+extern crate num_bigint;
+extern crate num;
+
+use num_bigint::BigUint;
+use num::FromPrimitive;
+
 
 const MOD_VAL: u64 = 10_000_000_000_000_000;
 
@@ -126,13 +132,15 @@ fn choose_mod(
 	}
 
 	// at this time, the denominator has been whacked
-	let mut final_answer = 1;
+	let mut final_answer = BigUint::new(vec![1]);
+	let big_mod: BigUint = FromPrimitive::from_u64(modulus).unwrap();
 	for num in numerators.iter() {
-		final_answer = (final_answer * *num as u64) % modulus;
+		final_answer = (final_answer * BigUint::new(vec![*num])) % &big_mod;
 	}
+	let digit_answer = small_big_int_to_u64(&final_answer);
 
-	mod_cache.insert(mod_cache_hash, final_answer);
-	final_answer
+	mod_cache.insert(mod_cache_hash, digit_answer);
+	digit_answer
 }
 
 
@@ -168,6 +176,7 @@ fn get_combinations(
 	}
 
 	println!("crunchin {} -> {}", value, level);
+	let mod_val: BigUint = FromPrimitive::from_u64(MOD_VAL).unwrap();
 
 	if level == three_digit_list.len() {
 		let end_of_the_line_combos = if value % 10 == 0 { 1 } else { 0 };
@@ -176,55 +185,44 @@ fn get_combinations(
 		return end_of_the_line_combos;
 	}
 
-	let mut number_of_combinations = 0;
+	let mut number_of_combinations = BigUint::new(vec![0]);
 	let decide_digit = three_digit_list[level];
 	for count_decide_digit in 0..=digit_counts[&decide_digit] {
-		let multiplier = choose_mod(
-			digit_counts[&decide_digit], // n 
-			count_decide_digit, // k
-			MOD_VAL,
-			prime_factor_map,
-			mod_cache
-		);
+		let multiplier: BigUint = FromPrimitive::from_u64(
+			choose_mod(
+				digit_counts[&decide_digit], // n 
+				count_decide_digit, // k
+				MOD_VAL,
+				prime_factor_map,
+				mod_cache
+			)
+		).unwrap();
+
+		let combinations: BigUint = FromPrimitive::from_u64(
+			get_combinations(
+				(
+					value + (count_decide_digit * decide_digit)
+				) % 1000,
+				level + 1,
+
+				three_digit_list,
+				digit_counts,
+				prime_factor_map,
+
+				combo_cache,
+				mod_cache
+			)
+		).unwrap();
 
 		number_of_combinations = (
-			number_of_combinations + (
-				multiplier * (
-					get_combinations(
-						(
-							value + (count_decide_digit * decide_digit)
-						) % 1000,
-						level + 1,
-
-						three_digit_list,
-						digit_counts,
-						prime_factor_map,
-
-						combo_cache,
-						mod_cache
-					) % MOD_VAL
-				) % MOD_VAL
-			)
-		) % MOD_VAL;
+			number_of_combinations + (multiplier * combinations)
+		) % &mod_val;
 	}
 
-	combo_cache.insert(hash_val, number_of_combinations);
-	number_of_combinations
+	let number_of_combinations_digits = small_big_int_to_u64(&number_of_combinations);
+	combo_cache.insert(hash_val, number_of_combinations_digits);
+	number_of_combinations_digits
 }
-
-// fn main() {
-// 	let factor_map = get_factor_map(100000);
-// 	let digit_counts = get_digit_counts();
-// 	// println!("{:#?}", digit_counts);
-// 	let mut mod_cache = HashMap::new();
-// 	println!("{}", choose_mod(
-// 		25001,
-// 		5,
-// 		MOD_VAL,
-// 		&factor_map,
-// 		&mut mod_cache
-// 	));
-// }
 
 fn main() {
     let digit_counts = get_digit_counts();
@@ -236,7 +234,7 @@ fn main() {
     
     let combinations = get_combinations(
     	0, 
-    	1,
+    	0,
 
     	&three_digit_list, 
     	&digit_counts, 
@@ -246,5 +244,24 @@ fn main() {
     	&mut mod_cache,
     );
 
-    println!("combination count = {}", combinations)
+    println!("combination count = {}", combinations);
 }
+
+fn small_big_int_to_u64(big_int: &BigUint) -> u64 {
+	let mut result: u64 = 0;
+	for digit in big_int.to_radix_be(10) {
+		result = result + digit as u64;
+		result = result * 10;
+	}
+	result / 10
+}
+
+
+// fn main() {
+// 	let big_num = BigUint::new(vec![456]);
+// 	let big_num_2 = BigUint::new(vec![456]);
+// 	let ttt = (big_num * big_num_2);
+// 	println!("{:?}", ttt);
+// 	println!("{:?}", ttt.to_radix_le(10));
+// 	println!("{:?}", small_big_int_to_u64(&ttt));
+// }
