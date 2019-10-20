@@ -51,7 +51,7 @@ fn hash_for_mod_cache(n: u32, k: u32) -> u32 {
 
 // grab digit counts for [1^1%1000, 2^2%1000, 3^3%1000, ..., 250250^250250%1000]
 fn get_digit_counts() -> HashMap<u32, u32> {
-	let vec: Vec<u32> = (0..=250250).collect();
+	let vec: Vec<u32> = (1..=250250).collect();
 	let vec: Vec<u32> = vec.into_iter().map(|x| power_mod_fast(x, x, 1000)).collect();
 
 	let mut digit_counts = HashMap::new();
@@ -147,7 +147,8 @@ fn choose_mod(
 fn get_factor_map(max_val: u32) -> HashMap<u32, HashMap<u32, u32>> {
 	let mut factor_map = HashMap::new();
     let primes = prime_tools::get_primes_less_than_x(
-    	round::ceil((max_val as f64).sqrt(), 1) as u32
+    	max_val
+    	// round::ceil((max_val as f64).sqrt(), 1) as u32
 	);
     for i in 1..=max_val {
     	factor_map.insert(
@@ -176,10 +177,11 @@ fn get_combinations(
 	}
 
 	println!("crunchin {} -> {}", value, level);
+	
 	let mod_val: BigUint = FromPrimitive::from_u64(MOD_VAL).unwrap();
 
 	if level == three_digit_list.len() {
-		let end_of_the_line_combos = if value % 10 == 0 { 1 } else { 0 };
+		let end_of_the_line_combos = if value % 250 == 0 { 1 } else { 0 };
 		combo_cache.insert(hash_val, end_of_the_line_combos);
 
 		return end_of_the_line_combos;
@@ -187,6 +189,7 @@ fn get_combinations(
 
 	let mut number_of_combinations = BigUint::new(vec![0]);
 	let decide_digit = three_digit_list[level];
+
 	for count_decide_digit in 0..=digit_counts[&decide_digit] {
 		let multiplier: BigUint = FromPrimitive::from_u64(
 			choose_mod(
@@ -227,7 +230,12 @@ fn get_combinations(
 fn main() {
     let digit_counts = get_digit_counts();
     let three_digit_list = get_three_digit_list(&digit_counts);
-    let factor_map = get_factor_map(100000);
+    let factor_map = get_factor_map(30000);
+
+    // let mut digit_counts = HashMap::new();
+    // digit_counts.insert(0, 1);
+    // let three_digit_list = vec![0, 5];
+    // digit_counts.insert(5, 3);
 
     let mut mod_cache = HashMap::new();
     let mut combo_cache: HashMap<u32, u64> = HashMap::new();
@@ -244,7 +252,7 @@ fn main() {
     	&mut mod_cache,
     );
 
-    println!("combination count = {}", combinations);
+    println!("combination count = {}", combinations - 1);
 }
 
 fn small_big_int_to_u64(big_int: &BigUint) -> u64 {
@@ -256,12 +264,15 @@ fn small_big_int_to_u64(big_int: &BigUint) -> u64 {
 	result / 10
 }
 
-
 // fn main() {
-// 	let big_num = BigUint::new(vec![456]);
-// 	let big_num_2 = BigUint::new(vec![456]);
-// 	let ttt = (big_num * big_num_2);
-// 	println!("{:?}", ttt);
-// 	println!("{:?}", ttt.to_radix_le(10));
-// 	println!("{:?}", small_big_int_to_u64(&ttt));
+// 	let factor_map = get_factor_map(30000);
+// 	let mut mod_cache = HashMap::new();
+// 	println!("{}", choose_mod(
+// 		25025,
+// 		12000, // k
+// 		MOD_VAL,
+// 		&factor_map,
+// 		&mut mod_cache
+// 	));
 // }
+

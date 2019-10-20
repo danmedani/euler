@@ -9,3 +9,5 @@ edition = "2018"
 [dependencies]
 prime_tools = "0.2"
 libmath = "0.1.4"
+num-bigint = "0.2"
+num = "0.2.0"
