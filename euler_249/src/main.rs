@@ -10,6 +10,13 @@ use num::FromPrimitive;
 
 const MOD_VAL: u64 = 10_000_000_000_000_000;
 
+
+// value -> 0..1.5M
+//last_prime_index_used 0..700 
+fn hash(value: u32, last_prime_index_used: usize) -> u32 {
+	return (value * 10_000) + (last_prime_index_used as u32);
+}
+
 fn get_combos(
 	value: u32,
 	last_prime_index_used: usize,
@@ -19,12 +26,13 @@ fn get_combos(
 	combo_cache: &mut HashMap<u32, u64>,
 	mod_val: &BigUint
 ) -> u64 {
-	match combo_cache.get(&value) {
+	let hash_val = hash(value, last_prime_index_used);
+
+	match combo_cache.get(&hash_val) {
 		None => (),
 		Some(val) => return *val
 	}
 
-	println!("crunchin {}", value);
 	match value {
 		1 => return 0,
 		0 => return 1,
@@ -62,7 +70,7 @@ fn get_combos(
 	}
 
 	let combo_count_u64 = small_big_int_to_u64(&combo_count);
-	combo_cache.insert(value, combo_count_u64);
+	combo_cache.insert(hash_val, combo_count_u64);
 	combo_count_u64
 }
 
@@ -116,6 +124,7 @@ fn main() {
     let mut combo_count = BigUint::new(vec![0]);
     for starting_index in 0..starting_primes.len() {
     	let max_index_to_use = if starting_index >= primes.len() { primes.len() } else { starting_index + 1 };
+    	println!("{}", starting_primes[starting_index]);
     	let combos: BigUint = FromPrimitive::from_u64(
 	    	get_combos(
 		    	starting_primes[starting_index],
