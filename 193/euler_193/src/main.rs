@@ -1,58 +1,73 @@
 use prime_tools;
 
 fn count_pairings(
-	current_value: u64,
+	current_val: u64,
 	top_val: u64, 
 	prime_squares: &Vec<u64>, 
 	min_index: usize, 
-	choices_left: u8,
-	add: bool
-) {
+	choices_left: u32
+) -> u64 {
 	if choices_left == 0 {
-		return top_val / current_value;
+		return top_val / current_val;
 	}
 
 	let mut current_index = min_index;
+	let mut total_sum = 0;
 	while current_index < prime_squares.len() {
-		let mut total = 0;
-		match current_value.checked_mul(prime_squares[current_index]) {
+		match current_val.checked_mul(prime_squares[current_index]) {
 			None => break,
-			Some(val) => {
-				total = val;
+			Some(new_val) => {
+				total_sum = total_sum + count_pairings(
+					new_val,
+					top_val,
+					prime_squares,
+					current_index + 1,
+					choices_left - 1
+				);
 			}
 		}
 
-		total += count_pairings(
-			total,
-			top_val,
-			prime_squares,
-			current_index + 1,
-			choices_left - 1,
-			!add
-		);
+		current_index += 1;
 	}
 
-	total
+	total_sum
 }
 
 fn main() {
     println!("Hello, world!");
     // 33_554_432 == sqrt(2^50)
     // let max_val = 100;
-    // let max_val = 2u64.pow(50);
-    let max_val = 100;
+    let max_val = 2u64.pow(50);
+    // let max_val = 10000;
     let prime_squares = get_squared_primes(max_val);
 
     let top_val = max_val - 1;
-    println!("{:?}", prime_squares);
+    println!("{:?}", prime_squares.len());
 
-    let mut total_count = top_val;
-    for squarey in prime_squares.iter() {
-    	let squarey_count = top_val / squarey;
-    	total_count = total_count - squarey_count;
+    let mut total_sum = top_val;
+    let mut add = false;
+    let mut num_prime_squares_to_use = 1;
+    while num_prime_squares_to_use < prime_squares.len() {
+		let main_total = count_pairings(
+    		1,
+    		top_val,
+    		&prime_squares,
+    		0,
+    		num_prime_squares_to_use as u32
+    	);
+    	
+    	if add {
+    		total_sum += main_total;
+    	} else {
+    		total_sum -= main_total;
+    	}
+    	add = !add;
+    	println!("num_prime_squares_to_use = {}, add = {}, total = {}, big total = {}", num_prime_squares_to_use, add, main_total, total_sum);
+    	
+    	num_prime_squares_to_use += 1;
     }
 
-    println!("total = {}", total_count);
+    println!("big total = {}", total_sum);
 }
 
 
