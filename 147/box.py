@@ -39,9 +39,36 @@ def get_squares(diamonds):
 
 	return squares
 
-diamonds = get_diamonds(4, 3)
+def get_shape(squares):
+	level = 0
+	shape = []
+	while True:
+		if len([
+			square for square in squares
+			if square[1] == level
+		]) == 0:
+			break
+		min_x = min([
+			square[0]
+			for square in squares
+			if square[1] == level
+		])
+		max_x = max([
+			square[0]
+			for square in squares
+			if square[1] == level
+		]) + 1
+
+		shape.append((min_x, max_x))
+		level = level + 1
+	return shape
+
+diamonds = get_diamonds(3, 3)
 print(diamonds)
-print(get_squares(diamonds))
+squares = get_squares(diamonds)
+print(squares)
+shape = get_shape(squares)
+print(shape)
 
 
 
