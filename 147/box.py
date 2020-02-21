@@ -28,6 +28,9 @@ def get_squares(diamonds):
 		squares.append(box)
 	for box in second_lane:
 		squares.append(box)
+
+	if len(diamonds) <= 2:
+		return squares
 	
 	pairs_left = (len(diamonds) - 2) / 2
 	for i in range(1, pairs_left + 1):
@@ -78,9 +81,10 @@ def count_rectangles_height(shape, rectangle_height):
 			for shape_row in shape[starting_y:starting_y+rectangle_height]
 		])
 		room = ending_x - starting_x
-		the_sum = the_sum + (
-			(room * (room + 1)) / 2
-		)
+		if room > 0:
+			the_sum = the_sum + (
+				(room * (room + 1)) / 2
+			)
 	return the_sum
 
 
@@ -117,9 +121,4 @@ def count_all_smaller(x, y):
 			summ = summ + total_count(a, b)
 	return summ
 
-print(count_all_smaller(3, 2))
-# print(total_count(3, 2))
-
-
-
-
+print(count_all_smaller(47, 43))
