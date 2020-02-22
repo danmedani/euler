@@ -36,55 +36,28 @@ def sum_square_range(a, b, mod):
 		) % mod
 	) % mod
 
-mod = 10 ** 9
-print(sum_square_range(11, 200000123123123, mod))
+# mod = 10 ** 9
+# print(sum_square_range(11, 200000123123123, mod))
 
 def SIGMA2(n, mod):
-	i = 1
 	the_sum = 0
+	val = n
+	while val > 0:
+		times = n / val
+		limit = n / (times + 1)
 
-	right_hand = n / i
-	i = i + 1
-	left_hand = n / i
-	
-	sum_range = sum_square_range(
-		left_hand + 1, 
-		right_hand, 
-		mod
-	)
-	print(left_hand, right_hand, sum_range)
-	the_sum += sum_range
+		sum_range = times * sum_square_range(
+			limit + 1, 
+			val, 
+			mod
+		)
+		the_sum = (the_sum + sum_range) % mod
+		val = limit
 
-
-# i = 1
-
-
-# right = 20
-# i = 2
-# left = 10
-# -----
-# right = 10
-# i = 3
-# left = 6
-# -----
-# right = 6
-# i = 4
-# left = 5
-# -----
-# right = 5
-# i = 5
-# left = 4
-# -----
-# right = 4
-# i = 6
-# left = 3
-# -----
-# right = 3
-# i = 7
-# left = 2
+	return the_sum
 
 
-
+print SIGMA2(10 ** 15, 10 ** 9)
 
 
 # n = 20
