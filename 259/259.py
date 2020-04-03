@@ -1,4 +1,3 @@
-from random import shuffle
 from typing import Dict
 from functools import lru_cache
 from fractions import Fraction
@@ -6,21 +5,6 @@ from mypy_extensions import TypedDict
 from typing import List
 from typing import Optional
 
-
-def evalulate(node) -> Fraction:
-	if 'val' in node:
-		return node['val']
-
-	if node['operator'] == '*':
-		return evalulate(node['left']) * evalulate(node['right'])
-	elif node['operator'] == '/':
-		return evalulate(node['left']) / evalulate(node['right'])
-	elif node['operator'] == '+':
-		return evalulate(node['left']) + evalulate(node['right'])
-	elif node['operator'] == '-':
-		return evalulate(node['left']) - evalulate(node['right'])
-
-	raise Exception('wat')
 
 def concat_digits(min_digit: int, max_digit: int) -> int:
 	return int(''.join([str(val) for val in list(range(min_digit, max_digit + 1))]))
@@ -145,6 +129,3 @@ for injected in all_injected:
 print(len(list(set_reachable.keys())))
 print(sum(list(set_reachable.keys())))
 
-# print(all_reachable(
-# 	{'left': {'val': 12345}, 'right': {'val': 6789}}
-# ))
