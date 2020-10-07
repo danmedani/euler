@@ -1,4 +1,3 @@
-use prime_tools;
 use std::cmp;
 
 fn convert_triple(n: u64, m: u64, c: u64) -> (u64, u64, u64) {
@@ -47,7 +46,7 @@ fn is_product_super_perfect(a: u64, b: u64) -> bool {
 		return false;
 	}
 
-	let mut mod_val = match a % 2 == 0 {
+	let mod_val = match a % 2 == 0 {
 		true => a,
 		_ => b
 	};
@@ -58,33 +57,17 @@ fn is_product_super_perfect(a: u64, b: u64) -> bool {
 	return false;
 }
 
-// fn is_area_super_perfect(a: u64, b: u64) -> bool {
-// 	let area = (a * b) / 2;
-// 	return (area % 28 == 0) && (area % 6 == 0);
-// }
+
 
 fn main() {
-    // let primes = prime_tools::get_primes_less_than_x(100_000_000);
 	let mut count_not_super_perfect = 0;
-	let mut i = 0;
 
-	for (a, b, c) in generate_pairs(1000) {
-		println!("{:?}, {:?}, {:?}", a, b, c);
-		// i += 1;
-		// if !is_product_super_perfect(a, b) {
-		// 	count_not_super_perfect += 1;
-		// }
+	for (a, b, _) in generate_pairs(100_000_000) {
+		if !is_product_super_perfect(a, b) {
+			count_not_super_perfect += 1;
+		}
 	}
-	// for i in 1..10000 {
-	// 	let mut j = i + 1;
-	// 	while j < 10000 {
-	// 		if is_area_super_perfect(i, j) != is_product_super_perfect(i, j) {
-	// 			println!("UH OH! {:?}, {:?}", i, j)
-	// 		}
-	// 		j += 2;
-	// 	}
-	// }
+
 	println!("count_not_super_perfect = {:?}", count_not_super_perfect);
-	println!("i = {:?}", i);
 }
 
