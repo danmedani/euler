@@ -10,53 +10,80 @@ P2_POINTS = {
 	t: 2 ** (t - 1) for t in range(1, 9)
 }
 
-def get_moves_for_p2() -> Dict[Tuple[int, int], int]:
-	p2_moves = {}
-	for p1_score in range(100):
-		for p2_score in range(100):
-			p2_moves[(p1_score, p2_score)] = 1
-	return p2_moves
+def get_chance_of_p2_victory(
+	starting_state: Tuple[int, int],
+	p2_moves: Dict[Tuple[int, int], int],
+	p1s_move: bool
+) -> float:
+	chance_of_p1_victory = Fraction(0, 1)
+	chance_of_p2_victory = Fraction(0, 1)
+	total_chance = chance_of_p1_victory + chance_of_p2_victory
+	state_to_chance_of_being_here = defaultdict(int)
+	state_to_chance_of_being_here[starting_state] = Fraction(1, 1)
+
+	moves = 1
+	while total_chance.numerator / total_chance.denominator < 0.9999999999:
+		next_layer_state_to_chance_of_being_here = defaultdict(int)
+
+		for state, chance_of_being_here in state_to_chance_of_being_here.items():
+			if state[0] >= 100 and state[1] >= 100:
+				raise Exception('bad state')
+
+			if state[0] >= 100:
+				chance_of_p1_victory += chance_of_being_here
+				continue
+			
+			if state[1] >= 100:
+				chance_of_p2_victory += chance_of_being_here
+				continue
+
+			if p1s_move:
+				next_layer_state_to_chance_of_being_here[(state[0], state[1])] += chance_of_being_here * Fraction(1, 2)
+				next_layer_state_to_chance_of_being_here[(state[0] + 1, state[1])] += chance_of_being_here * Fraction(1, 2)
+			else:
+				p2s_move = p2_moves[state]
+				next_layer_state_to_chance_of_being_here[(state[0], state[1] + P2_POINTS[p2s_move])] += chance_of_being_here * P2_CHANCE[p2s_move]
+				next_layer_state_to_chance_of_being_here[(state[0], state[1])] += chance_of_being_here * (Fraction(1, 1) - P2_CHANCE[p2s_move])
+
+		state_to_chance_of_being_here = next_layer_state_to_chance_of_being_here
+		p1s_move = not p1s_move
+		total_chance = chance_of_p1_victory + chance_of_p2_victory
+		# print(len(state_to_chance_of_being_here), moves, total_chance.numerator / total_chance.denominator)
+		moves += 1
+	return chance_of_p2_victory
 
 
-p2_moves = get_moves_for_p2()
+p2_moves = {}
 
-chance_of_p1_victory = Fraction(0, 1)
-chance_of_p2_victory = Fraction(0, 1)
+for p2_score in range(99, -1, -1):
+	p1_score = 99
+	while p1_score >= 0:
+		# find the best!
+		best_move = -1	
+		best_move_chance = -1
+		for p2_move in range(1, 9):
+			p2_moves[(p1_score, p2_score)] = p2_move
+			chance_of_p2_victory = get_chance_of_p2_victory((p1_score, p2_score), p2_moves, False)
+			if chance_of_p2_victory > best_move_chance:
+				best_move_chance = chance_of_p2_victory
+				best_move = p2_move
 
-state_to_chance_of_being_here = defaultdict(int)
-state_to_chance_of_being_here[(0, 0)] = Fraction(1, 1)
+		print('best move for ({}, {}) = {} ({})'.format(
+			p1_score, 
+			p2_score,
+			best_move,
+			best_move_chance.numerator / best_move_chance.denominator
+		))
+		p2_moves[p1_score, p2_score] = best_move
 
-p1s_move = True
+		if best_move == 1: # the rest are prolly
+			while p1_score >= 0:
+				p2_moves[p1_score, p2_score] = 1
+				p1_score -= 1
 
-for i in range(1000):
-	next_layer_state_to_chance_of_being_here = defaultdict(int)
-
-	for state, chance_of_being_here in state_to_chance_of_being_here.items():
-		if state[0] >= 100 and state[1] >= 100:
-			raise Exception('bad state')
-
-		if state[0] >= 100:
-			chance_of_p1_victory += chance_of_being_here
-			continue
-		
-		if state[1] >= 100:
-			chance_of_p2_victory += chance_of_being_here
-			continue
-
-		if p1s_move:
-			next_layer_state_to_chance_of_being_here[(state[0], state[1])] += chance_of_being_here * Fraction(1, 2)
-			next_layer_state_to_chance_of_being_here[(state[0] + 1, state[1])] += chance_of_being_here * Fraction(1, 2)
-		else:
-			p2s_move = p2_moves[state]
-			next_layer_state_to_chance_of_being_here[(state[0], state[1] + P2_POINTS[p2s_move])] += chance_of_being_here * P2_CHANCE[p2s_move]
-			next_layer_state_to_chance_of_being_here[(state[0], state[1])] += chance_of_being_here * (Fraction(1, 1) - P2_CHANCE[p2s_move])
-
-	state_to_chance_of_being_here = next_layer_state_to_chance_of_being_here
-	p1s_move = not p1s_move
-	print(i, 'state_size = ', len(next_layer_state_to_chance_of_being_here))
+		p1_score -= 1
 
 
-print('chance_of_p1_victory', chance_of_p1_victory)
-print('chance_of_p2_victory', chance_of_p2_victory)
+print(p2_moves)
 
 
