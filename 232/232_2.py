@@ -1,10 +1,10 @@
 from typing import Dict
 from typing import Tuple
 from collections import defaultdict
-from fractions import Fraction
+# from fractions import Fraction
 
 P2_CHANCE = {
-	t: Fraction(1, 2 ** t) for t in range(1, 9)
+	t: 1.0 / (2 ** t) for t in range(1, 9)
 }
 P2_POINTS = {
 	t: 2 ** (t - 1) for t in range(1, 9)
@@ -15,14 +15,13 @@ def get_chance_of_p2_victory(
 	p2_moves: Dict[Tuple[int, int], int],
 	p1s_move: bool
 ) -> float:
-	chance_of_p1_victory = Fraction(0, 1)
-	chance_of_p2_victory = Fraction(0, 1)
+	chance_of_p1_victory = 0
+	chance_of_p2_victory = 0
 	total_chance = chance_of_p1_victory + chance_of_p2_victory
 	state_to_chance_of_being_here = defaultdict(int)
-	state_to_chance_of_being_here[starting_state] = Fraction(1, 1)
+	state_to_chance_of_being_here[starting_state] = 1.0
 
-	moves = 1
-	while total_chance.numerator / total_chance.denominator < 0.9999999999:
+	while total_chance < 0.9999999999:
 		next_layer_state_to_chance_of_being_here = defaultdict(int)
 
 		for state, chance_of_being_here in state_to_chance_of_being_here.items():
@@ -38,18 +37,16 @@ def get_chance_of_p2_victory(
 				continue
 
 			if p1s_move:
-				next_layer_state_to_chance_of_being_here[(state[0], state[1])] += chance_of_being_here * Fraction(1, 2)
-				next_layer_state_to_chance_of_being_here[(state[0] + 1, state[1])] += chance_of_being_here * Fraction(1, 2)
+				next_layer_state_to_chance_of_being_here[(state[0], state[1])] += chance_of_being_here * 1.0 / 2
+				next_layer_state_to_chance_of_being_here[(state[0] + 1, state[1])] += chance_of_being_here * 1.0 / 2
 			else:
 				p2s_move = p2_moves[state]
 				next_layer_state_to_chance_of_being_here[(state[0], state[1] + P2_POINTS[p2s_move])] += chance_of_being_here * P2_CHANCE[p2s_move]
-				next_layer_state_to_chance_of_being_here[(state[0], state[1])] += chance_of_being_here * (Fraction(1, 1) - P2_CHANCE[p2s_move])
+				next_layer_state_to_chance_of_being_here[(state[0], state[1])] += chance_of_being_here * (1.0 - P2_CHANCE[p2s_move])
 
 		state_to_chance_of_being_here = next_layer_state_to_chance_of_being_here
 		p1s_move = not p1s_move
 		total_chance = chance_of_p1_victory + chance_of_p2_victory
-		# print(len(state_to_chance_of_being_here), moves, total_chance.numerator / total_chance.denominator)
-		moves += 1
 	return chance_of_p2_victory
 
 
@@ -72,11 +69,11 @@ for p2_score in range(99, -1, -1):
 			p1_score, 
 			p2_score,
 			best_move,
-			best_move_chance.numerator / best_move_chance.denominator
+			best_move_chance
 		))
 		p2_moves[p1_score, p2_score] = best_move
 
-		if best_move == 1: # the rest are prolly
+		if best_move == 1: # the rest are prolly 1
 			while p1_score >= 0:
 				p2_moves[p1_score, p2_score] = 1
 				p1_score -= 1
