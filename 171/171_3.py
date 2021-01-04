@@ -8,16 +8,6 @@ from functools import lru_cache
 
 MOD = 10 ** 9
 
-def get_all_digit_number(digit_map: Dict[int, int]) -> int:
-	val = 0
-	ten_pow = 1
-	for digit, digit_count in digit_map.items():
-		while digit_count > 0:
-			val += (ten_pow * digit)
-			ten_pow *= 10
-			digit_count -= 1
-	return val
-
 
 def get_permutation_count(digit_map: Dict[int, int]) -> int:
 	num_length = sum([val for val in digit_map.values() if val > 0])
@@ -29,7 +19,10 @@ def get_permutation_count(digit_map: Dict[int, int]) -> int:
 
 @lru_cache(maxsize=10000)
 def get_d_mult(total_tail_perm_count: int, digit_count: int, total_tail_digit_count: int) -> int:
-	return int(Fraction(total_tail_perm_count, 1) * Fraction(digit_count, total_tail_digit_count))
+	res = Fraction(total_tail_perm_count, 1) * Fraction(digit_count, total_tail_digit_count)
+	if res.denominator != 1:
+		raise Exception('o noe!')
+	return int(res)
 
 @lru_cache(maxsize=50)
 def get_ten_pow(power: int) -> int:
@@ -43,17 +36,15 @@ def get_unique_num_sums_fast(digit_map: Dict[int, int], mod_val: int) -> int:
 	num_length = sum(digit_map.values())
 	the_sum = 0
 
-	perm_time = 0
-	loop_time = 0
-
 	# select a first digit (that isn't 0)
 	for first_digit in digit_map.keys():
 		if first_digit == 0:
 			continue
 		# print('first_digit = {}'.format(first_digit))
 		digit_map[first_digit] -= 1
+		if digit_map[first_digit] < 0:
+			raise Exception('what')
 		total_tail_perm_count = get_permutation_count(digit_map)
-		total_tail_digit_count = sum([val for val in digit_map.values()])
 		# print('total_tail_perm_count = {}'.format(total_tail_perm_count))
 
 		ten_pow = get_ten_pow(num_length - 1)
@@ -67,18 +58,18 @@ def get_unique_num_sums_fast(digit_map: Dict[int, int], mod_val: int) -> int:
 		ten_pow = get_next_lowest_ten_pow(ten_pow)
 		if ten_pow == 0:
 			# it was a 1 digit number
+			digit_map[first_digit] += 1
 			continue
 
 		# print('base_tail_show_count_per_digit = {}'.format(base_tail_show_count_per_digit))
 		# print('digit_map = {}'.format(digit_map))
-		if len([key for key in digit_map if digit_map[key] > 0]) == 1:
-			the_sum += get_all_digit_number(digit_map)
-		else:
-			while ten_pow > 0:
-				for digit, digit_count in digit_map.items():
-					d_mult = get_d_mult(total_tail_perm_count, digit_count, total_tail_digit_count)
-					the_sum += (ten_pow * digit * d_mult % mod_val)
-				ten_pow = get_next_lowest_ten_pow(ten_pow)
+
+		total_tail_digit_count = sum([val for val in digit_map.values()])
+		while ten_pow > 0:
+			for digit, digit_count in digit_map.items():
+				d_mult = get_d_mult(total_tail_perm_count, digit_count, total_tail_digit_count)
+				the_sum += ((ten_pow * digit * d_mult) % mod_val)
+			ten_pow = get_next_lowest_ten_pow(ten_pow)
 
 		digit_map[first_digit] += 1
 
@@ -113,37 +104,22 @@ def get_unique_num_sums(
 
 def extract_digit_map(value: int) -> Dict[int, int]:
 	digit_map = {}
-
-	while value > 0:
-		digit = value % 10
-		if digit not in digit_map:
-			digit_map[digit] = 0
-		digit_map[digit] += 1
-		value = int(value / 10)
-
+	value_str = str(value)
+	
+	for c in value_str:
+		if int(c) not in digit_map:
+			digit_map[int(c)] = 0
+		digit_map[int(c)] += 1
 	return digit_map
 
+assert extract_digit_map(1001) == {1: 2, 0: 2}
+assert extract_digit_map(1100) == {1: 2, 0: 2}
+assert extract_digit_map(101) == {1: 2, 0: 1}
+assert extract_digit_map(11) == {1: 2}
+assert extract_digit_map(1) == {1: 1}
+assert extract_digit_map(90) == {9: 1, 0: 1}
 
-# x = 10**10
-# while True:
-# 	if x % 10 == 0:
-# 		y = x + 5
-# 		while x < y:
-# 			print(x)
-# 			if get_unique_num_sums_fast(extract_digit_map(x), MOD) != get_unique_num_sums(extract_digit_map(x), 0, True, MOD):
-# 				print('ALERT', x)
-# 				raise Exception('nope')
-# 			x += 1
-# 	else:
-# 		print(x)
-# 		if get_unique_num_sums_fast(extract_digit_map(x), MOD) != get_unique_num_sums(extract_digit_map(x), 0, True, MOD):
-# 			print('ALERT', x)
-# 			raise Exception('nope')
-# 	x += random.randint(1, 1000000)
 
-# x = 99999999999999999733
-# print(get_unique_num_sums_fast(extract_digit_map(x), MOD))
-# print(get_unique_num_sums(extract_digit_map(x), 0, True, MOD))
 
 def get_unique_number_sets_that_sum_to(
 	val_to_sum_to: int,
@@ -175,34 +151,19 @@ def get_unique_number_sets_that_sum_to(
 	return res
 
 
-for number_length in range(1, 5):
-	print(number_length, get_unique_number_sets_that_sum_to(29, 9, number_length, 0))
+total_sum = 0
 
+for square_side in range(1, 45):
+	print('square_side', square_side)
+	for number_length in range(1, 21):
+		for unique_num_set in get_unique_number_sets_that_sum_to(
+			val_to_sum_to=square_side * square_side, 
+			max_digit=9,
+			digits_left=number_length, 
+			val_so_far=0
+		):
+			total_sum += get_unique_num_sums_fast(extract_digit_map(unique_num_set), MOD)
 
-# total_sum = 0
-# total_og_sum = 0
-# perm_time = 0
-# loop_time = 0
-# for square in range(1, 45):
-# 	print('square', square)
-# 	for number_length in range(1, 21):
-# 		for unique_num_set in get_unique_number_sets_that_sum_to(
-# 			val_to_sum_to=square * square, 
-# 			max_digit=9,
-# 			digits_left=number_length, 
-# 			val_so_far=0
-# 		):
-# 			# print(unique_num_set)
-# 			# print(get_unique_num_sums_fast(extract_digit_map(unique_num_set), MOD))
-# 			total_sum += get_unique_num_sums_fast(extract_digit_map(unique_num_set), MOD)
-# 			# perm_time += this_perm_time
-# 			# loop_time += this_loop_time
-# 			# total_og_sum += get_unique_num_sums(extract_digit_map(unique_num_set), 0, True, MOD)
+	print(square_side, total_sum % MOD)
 
-# 	print(square, total_sum % MOD)
-# 	# print(square, total_og_sum % MOD)
-
-# print(total_sum % MOD)
-
-
-
+print(total_sum % MOD)
